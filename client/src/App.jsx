@@ -39,7 +39,7 @@ function AppRoutes() {
   return (
     <>
       <Navbar />
-      <ToastContainer theme="dark" position="bottom-right" autoClose={3000} />
+      <ToastContainer position="bottom-right" autoClose={3000} newestOnTop hideProgressBar={false} closeOnClick pauseOnHover />
       <main style={{ flex: 1 }}>
         <Routes>
           <Route path="/" element={<Landing />} />
