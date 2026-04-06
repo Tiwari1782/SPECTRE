@@ -61,7 +61,7 @@ export default function IdeaCopilot({ teamIds, teamContext, activeContact, onClo
       
       <div className="copilot-messages">
         {messages.map((msg, i) => (
-          <div key={i} className={copilot-msg ${msg.role}}>
+          <div key={i} className={`copilot-msg ${msg.role}`}>
             {msg.content}
           </div>
         ))}

@@ -122,7 +122,7 @@ export default function VoiceIntro() {
   };
 
   const formatTime = (seconds) => {
-    return 00:${seconds.toString().padStart(2, '0')};
+    return `00:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -172,7 +172,7 @@ export default function VoiceIntro() {
               onClick={togglePlayback}
               style={{ borderRadius: '50%', width: 48, height: 48, padding: 0 }}
             >
-              <i className={fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}}></i>
+              <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
             </button>
             <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
                <div style={{ width: '100%', height: '100%', background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))' }}></div>

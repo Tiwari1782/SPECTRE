@@ -13,7 +13,7 @@ export default function SkillQuiz({ skill, onClose, onSuccess }) {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const { data } = await api.get(/quiz/${skill});
+        const { data } = await api.get(`/quiz/${skill}`);
         setQuestions(data.questions);
       } catch (err) {
         setError("Failed to load quiz. AI service might be busy.");
@@ -38,7 +38,7 @@ export default function SkillQuiz({ skill, onClose, onSuccess }) {
     if (answers.length < questions.length || answers.includes(undefined)) return;
     setSubmitting(true);
     try {
-      const { data } = await api.post(/quiz/${skill}/submit, { answers, timeTaken: 120 });
+      const { data } = await api.post(`/quiz/${skill}/submit`, { answers, timeTaken: 120 });
       setResult(data);
     } catch (err) {
       setError("Failed to submit quiz.");
@@ -117,7 +117,7 @@ export default function SkillQuiz({ skill, onClose, onSuccess }) {
         </div>
 
         <div className="quiz-progress-bar" style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 'var(--space-lg)' }}>
-          <div style={{ height: '100%', background: 'var(--accent-primary)', borderRadius: 2, width: ${((currentIdx + 1) / questions.length) * 100}%, transition: 'width 0.3s ease' }}></div>
+          <div style={{ height: '100%', background: 'var(--accent-primary)', borderRadius: 2, width: `${((currentIdx + 1) / questions.length) * 100}%`, transition: 'width 0.3s ease' }}></div>
         </div>
 
         <div style={{ marginBottom: 'var(--space-xl)' }}>
@@ -134,7 +134,7 @@ export default function SkillQuiz({ skill, onClose, onSuccess }) {
             <button
               key={i}
               onClick={() => handleAnswer(i)}
-              className={quiz-option ${answers[currentIdx] === i ? 'selected' : ''}}
+              className={`quiz-option ${answers[currentIdx] === i ? 'selected' : ''}`}
             >
               <div className="quiz-option-letter">{String.fromCharCode(65 + i)}</div>
               <div className="quiz-option-text">{opt}</div>
