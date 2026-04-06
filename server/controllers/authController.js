@@ -179,3 +179,155 @@ exports.rejectRequest = async (req, res) => {
     res.status(500).json({ message: 'Failed to reject request', error: err.message });
   }
 };
+
+// Browse open teams (for discovery)
+exports.browseOpenTeams = async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const teams = await TeamInvite.find({
+        isOpen: true,
+        expiresAt: { $gt: new Date() },
+        $expr: { $lt: [{ $size: '$members' }, '$teamSlots'] }
+      })
+        .populate('members', 'name role skills')
+        .populate('createdBy', 'name role skills')
+        .sort({ createdAt: -1 })
+        .limit(30);
+  
+      // Mark which teams the user is already in or has pending requests
+      const result = teams.map(t => {
+        const obj = t.toObject();
+        obj.isMember = t.members.some(m => m._id.toString() === userId);
+        obj.hasPendingRequest = t.joinRequests.some(r => r.user.toString() === userId && r.status === 'pending');
+        obj.pendingCount = t.joinRequests.filter(r => r.status === 'pending').length;
+        // Don't expose other people's join requests in browse
+        delete obj.joinRequests;
+        return obj;
+      });
+  
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to browse teams', error: err.message });
+    }
+  };
+  
+  // Update team details (owner only)
+  exports.updateTeam = async (req, res) => {
+    const { teamId } = req.params;
+    const { teamName, description, isOpen } = req.body;
+    try {
+      const team = await TeamInvite.findById(teamId);
+      if (!team) return res.status(404).json({ message: 'Team not found' });
+      if (team.createdBy.toString() !== req.user.userId) return res.status(403).json({ message: 'Only the owner can update' });
+  
+      if (teamName !== undefined) team.teamName = teamName;
+      if (description !== undefined) team.description = description;
+      if (isOpen !== undefined) team.isOpen = isOpen;
+      await team.save();
+  
+      res.json(team);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to update team', error: err.message });
+    }
+  };
+  
+  // Add a specific user to team (owner only — for AI recommendations)
+  exports.addMemberToTeam = async (req, res) => {
+    const { teamId } = req.params;
+    const { userId: targetUserId } = req.body;
+    try {
+      const team = await TeamInvite.findById(teamId);
+      if (!team) return res.status(404).json({ message: 'Team not found' });
+      if (team.createdBy.toString() !== req.user.userId) return res.status(403).json({ message: 'Only the owner can add members' });
+      if (team.members.length >= team.teamSlots) return res.status(400).json({ message: 'Team is full' });
+  
+      team.members.addToSet(targetUserId);
+      await team.save();
+  
+      const updatedTeam = await TeamInvite.findById(teamId)
+        .populate('members', 'name role skills xp level badges experience githubUsername githubData goals')
+        .populate('createdBy', 'name');
+  
+      res.json({ message: 'Member added', team: updatedTeam });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to add member', error: err.message });
+    }
+  };
+  
+  // Send a direct manual invite to a developer (Team owner only)
+  exports.inviteUserToTeam = async (req, res) => {
+    const { teamId } = req.params;
+    const { userId: targetUserId, message } = req.body;
+    try {
+      const team = await TeamInvite.findById(teamId);
+      if (!team) return res.status(404).json({ message: 'Team not found' });
+      if (team.createdBy.toString() !== req.user.userId) return res.status(403).json({ message: 'Only the owner can send invites' });
+      if (team.members.length >= team.teamSlots) return res.status(400).json({ message: 'Team is full' });
+  
+      // Check if already in team
+      if (team.members.includes(targetUserId)) {
+        return res.status(400).json({ message: 'User is already in team' });
+      }
+  
+      // Check if already invited
+      const existingInvite = team.sentInvites.find(inv => inv.user.toString() === targetUserId && inv.status === 'pending');
+      if (existingInvite) {
+        return res.status(400).json({ message: 'User has already been invited to this team' });
+      }
+  
+      team.sentInvites.push({ user: targetUserId, message: message || '' });
+      await team.save();
+  
+      res.json({ message: 'Invite sent successfully' });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to send invite', error: err.message });
+    }
+  };
+  
+  // Accept a direct manual invite (Invited user only)
+  exports.acceptIncomingInvite = async (req, res) => {
+    const { teamId, inviteId } = req.params;
+    const userId = req.user.userId;
+    try {
+      const team = await TeamInvite.findById(teamId);
+      if (!team) return res.status(404).json({ message: 'Team not found' });
+      
+      const invite = team.sentInvites.id(inviteId);
+      if (!invite) return res.status(404).json({ message: 'Invite not found' });
+      if (invite.user.toString() !== userId) return res.status(403).json({ message: 'Not authorized' });
+      if (invite.status !== 'pending') return res.status(400).json({ message: 'Invite no longer pending' });
+      if (team.members.length >= team.teamSlots) return res.status(400).json({ message: 'Team is now full' });
+  
+      invite.status = 'accepted';
+      team.members.addToSet(userId);
+      await team.save();
+  
+      res.json({ message: 'Joined team successfully!' });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to accept invite', error: err.message });
+    }
+  };
+  
+  // Reject a direct manual invite (Invited user only)
+  exports.rejectIncomingInvite = async (req, res) => {
+    const { teamId, inviteId } = req.params;
+    const userId = req.user.userId;
+    try {
+      const team = await TeamInvite.findById(teamId);
+      if (!team) return res.status(404).json({ message: 'Team not found' });
+      
+      const invite = team.sentInvites.id(inviteId);
+      if (!invite) return res.status(404).json({ message: 'Invite not found' });
+      if (invite.user.toString() !== userId) return res.status(403).json({ message: 'Not authorized' });
+      if (invite.status !== 'pending') return res.status(400).json({ message: 'Invite already responded' });
+  
+      invite.status = 'rejected';
+      await team.save();
+  
+      res.json({ message: 'Invite rejected' });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to reject invite', error: err.message });
+    }
+  };
+  
+  
