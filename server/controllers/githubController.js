@@ -45,6 +45,7 @@ exports.fetchGitHub = async (req, res) => {
       githubData
     });
 
+    
     // Award XP
     await awardXP(req.user.userId, 15, 'github_connected');
 
