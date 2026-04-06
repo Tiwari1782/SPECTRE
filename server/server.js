@@ -25,10 +25,19 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5173', 
   'http://localhost:5174', 
-  'http://localhost:5175'
+  'http://localhost:5175',
+  'https://spectre-zeta-one.vercel.app' // Hardcoded production Vercel URL
 ];
-if (process.env.CLIENT_URL && !allowedOrigins.includes(process.env.CLIENT_URL)) {
-  allowedOrigins.push(process.env.CLIENT_URL);
+
+if (process.env.CLIENT_URL) {
+  // Remove trailing slash if present so origin matching works correctly
+  const cleanUrl = process.env.CLIENT_URL.endsWith('/') 
+    ? process.env.CLIENT_URL.slice(0, -1) 
+    : process.env.CLIENT_URL;
+    
+  if (!allowedOrigins.includes(cleanUrl)) {
+    allowedOrigins.push(cleanUrl);
+  }
 }
 
 // Socket.io
