@@ -6,6 +6,7 @@ import api from '../services/api';
 import Loader from '../components/UI/Loader';
 import TeamInviteLink from '../components/Team/TeamInviteLink';
 import TeamHealthDashboard from '../components/Team/TeamHealthDashboard';
+import WarRoom from '../components/Team/WarRoom';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   ResponsiveContainer, Tooltip, Legend, PieChart, Pie, Cell
@@ -209,6 +210,11 @@ export default function Team() {
         <button className={`team-tab ${activeTab === 'ai-team' ? 'active' : ''}`} onClick={() => { setActiveTab('ai-team'); if (!aiTeam) generateAiTeam(); }}>
           <i className="fa-solid fa-wand-magic-sparkles"></i> AI Suggested
         </button>
+        {myTeams.length > 0 && (
+          <button className={`team-tab ${activeTab === 'war-room' ? 'active' : ''}`} onClick={() => setActiveTab('war-room')}>
+            <i className="fa-solid fa-satellite-dish" style={{ color: activeTab === 'war-room' ? '#ec4899' : 'inherit' }}></i> War Room
+          </button>
+        )}
       </div>
 
       {/* ═══════════════ MY TEAMS TAB ═══════════════ */}
@@ -799,6 +805,20 @@ export default function Team() {
           )}
         </div>
       )}
+
+      {/* ═══════════════ WAR ROOM TAB ═══════════════ */}
+      {activeTab === 'war-room' && activeTeam && (
+        <WarRoom teamId={activeTeam._id} />
+      )}
+      
+      {activeTab === 'war-room' && !activeTeam && (
+        <div className="team-empty-state glass-card-static">
+          <div className="team-empty-icon"><i className="fa-solid fa-lock"></i></div>
+          <h3>War Room Locked</h3>
+          <p>You must create or join a team first to access the Hackathon War Room.</p>
+        </div>
+      )}
+
     </div>
   );
 }

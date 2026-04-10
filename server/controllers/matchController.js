@@ -1,7 +1,25 @@
 const User = require('../models/User');
 const TeamInvite = require('../models/TeamInvite');
 const { calculateMatchScore, assignRole } = require('../services/matchingService');
-const { generateMatchExplanation, generateProjectIdeas, analyzeTeamHealth } = require('../services/groqService');
+const { generateMatchExplanation, generateProjectIdeas, analyzeTeamHealth, generateTeamArchitecture } = require('../services/groqService');
+
+exports.getTeamArchitecture = async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const invite = await TeamInvite.findById(teamId).populate('members');
+    if (!invite) return res.status(404).json({ message: 'Team not found' });
+    
+    // Fallback if team is empty
+    if (!invite.members || invite.members.length === 0) {
+      return res.status(400).json({ message: 'Team has no members' });
+    }
+
+    const architecture = await generateTeamArchitecture(invite.members);
+    res.json({ architecture });
+  } catch (err) {
+    res.status(500).json({ message: 'Architecture generation failed', error: err.message });
+  }
+};
 
 exports.getMatches = async (req, res) => {
   try {

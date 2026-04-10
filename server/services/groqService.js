@@ -154,3 +154,29 @@ Make questions practical, not theoretical. No preamble.`;
   );
   return JSON.parse(result);
 };
+
+// Generate Team Architecture & Scaffolding
+exports.generateTeamArchitecture = async (team) => {
+  const teamSummary = team.map(m =>
+    `${m.name} (${m.role}): ${(m.skills || []).map(s => s.name).join(', ')}`
+  ).join('\n');
+
+  const prompt = `You are an expert CTO organizing a hackathon project. Based on the EXACT skills this team has, design the optimal technology architecture they should use.
+Do NOT just list features. Be highly technical and justify your choices based on their skills.
+Return ONLY valid JSON in this exact format:
+{
+  "frontend": "React with Vite (Client wrapper) - chosen because User X is strong in React.",
+  "backend": "Node.js Express API - chosen because User Y knows Node.",
+  "database": "MongoDB with Mongoose...",
+  "scaffoldCommand": "mkdir project && cd project && npx create-vite client --template react && mkdir server && cd server && npm init -y && npm install express mongoose cors dotenv",
+  "architectureNotes": "Connect Frontend to Backend via Axios. Use UUIDs for quick hackathon relations."
+}
+Team members and skills:
+${teamSummary}`;
+
+  const result = await groqRequest(
+    [{ role: 'user', content: prompt }],
+    { maxTokens: 800, jsonMode: true }
+  );
+  return JSON.parse(result);
+};
